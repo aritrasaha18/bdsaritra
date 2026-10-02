@@ -44,17 +44,11 @@ export default function Pipeline({ step, done, broke, running }: { step: number;
   }
   if (!running && !done) { flowing.clear(); }
 
-  const verdictColor = broke ? "var(--break)" : "var(--teal)";
+  const verdictColor = broke ? "var(--red)" : "var(--green)";
 
   return (
     <div className="pipeline-wrap">
       <svg className="pipeline" viewBox="0 0 880 160" role="img" aria-label="Agent pipeline: confirmation, classifier, booking system and counterparty data, comparator, verdict">
-        <defs>
-          <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="5" result="b" />
-            <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
-          </filter>
-        </defs>
 
         {edges.map(([a, b]) => {
           const id = `${a}-${b}`;
@@ -73,7 +67,7 @@ export default function Pipeline({ step, done, broke, running }: { step: number;
               />
               {flowing.has(id) &&
                 [0, 0.33, 0.66].map((delay) => (
-                  <circle key={delay} r="3.5" className="packet" filter="url(#glow)">
+                  <circle key={delay} r="3.5" className="packet">
                     <animateMotion dur="1s" repeatCount="indefinite" begin={`${delay}s`} path={d} />
                   </circle>
                 ))}
@@ -90,9 +84,9 @@ export default function Pipeline({ step, done, broke, running }: { step: number;
                   r="40"
                   className="node-out"
                   initial={false}
-                  animate={{ scale: done ? 1 : 0.85, stroke: done ? verdictColor : "var(--rule)" }}
+                  animate={{ scale: done ? 1 : 0.85, stroke: done ? verdictColor : "#d2d2d7" }}
                   transition={{ type: "spring", stiffness: 300, damping: 18 }}
-                  filter={done ? "url(#glow)" : undefined}
+                  
                 />
                 <text textAnchor="middle" dy="5" className="node-label" style={done ? { fill: verdictColor, fontWeight: 600 } : undefined}>
                   {done ? (broke ? "Break" : "Match") : n.label}
@@ -108,7 +102,7 @@ export default function Pipeline({ step, done, broke, running }: { step: number;
                 rx={H / 2}
                 className="node"
                 initial={false}
-                animate={{ stroke: on ? "var(--gold-deep)" : "var(--rule)", fill: on ? "#fff8dc" : "#ffffff" }}
+                animate={{ stroke: on ? "#0071e3" : "#d2d2d7", fill: on ? "#f0f6ff" : "#ffffff" }}
                 transition={{ duration: 0.3 }}
               />
               <text x={W / 2} y={H / 2 + 5} textAnchor="middle" className="node-label">{n.label}</text>

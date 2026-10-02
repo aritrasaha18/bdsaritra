@@ -34,7 +34,7 @@ export default function Constellation() {
           const d = Math.hypot(a.x - b.x, a.y - b.y);
           if (d < LINK) {
             const isMouse = j === all.length - 1;
-            ctx.strokeStyle = isMouse ? `rgba(227,192,75,${0.55 * (1 - d / LINK)})` : `rgba(160,180,220,${0.22 * (1 - d / LINK)})`;
+            ctx.strokeStyle = isMouse ? `rgba(41,151,255,${0.6 * (1 - d / LINK)})` : `rgba(255,255,255,${0.12 * (1 - d / LINK)})`;
             ctx.lineWidth = isMouse ? 1.2 : 1;
             ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
           }
@@ -42,7 +42,7 @@ export default function Constellation() {
       }
       for (const p of pts) {
         const near = Math.hypot(p.x - mouse.x, p.y - mouse.y) < LINK;
-        ctx.fillStyle = near ? "#e3c04b" : "rgba(200,212,236,.55)";
+        ctx.fillStyle = near ? "#2997ff" : "rgba(255,255,255,.35)";
         ctx.beginPath(); ctx.arc(p.x, p.y, near ? 2.2 : 1.5, 0, Math.PI * 2); ctx.fill();
       }
     };

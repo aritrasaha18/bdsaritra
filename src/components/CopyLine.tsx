@@ -6,7 +6,7 @@ export default function CopyLine({ text, label }: { text: string; label: string 
     <div className="copyline">
       <code>{text}</code>
       <button
-        className="btn btn-ghost"
+        className="pill pill-ghost pill-sm"
         onClick={() => {
           navigator.clipboard?.writeText(text);
           setDone(true);

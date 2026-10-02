@@ -113,7 +113,7 @@ export default function ReconDemo() {
             </button>
           ))}
         </div>
-        <button className="btn btn-solid" onClick={run} disabled={running}>
+        <button className="pill" onClick={run} disabled={running}>
           {running ? "Checking…" : phase === "done" ? "Run again" : "Check this confirmation"}
         </button>
       </div>

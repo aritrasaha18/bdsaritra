@@ -31,7 +31,7 @@ float fbm(vec2 p){
 }
 vec3 aia171(float t){
   t = clamp(t, 0.0, 1.0);
-  vec3 c0 = vec3(0.035, 0.086, 0.20);
+  vec3 c0 = vec3(0.0);
   vec3 c1 = vec3(0.30, 0.25, 0.05);
   vec3 c2 = vec3(0.80, 0.64, 0.18);
   vec3 c3 = vec3(1.00, 0.93, 0.66);
@@ -57,7 +57,7 @@ void main(){
   float near = exp(-max(mLen / R - 1.0, 0.0) * 0.8);
 
   vec3 col;
-  float flash = (1.0 - grow) * 1.6;
+  float flash = (1.0 - grow) * 1.1;
   if (r < 1.0) {
     vec2 sp = vec2(asin(clamp(d.x / max(sqrt(1.0 - d.y*d.y), 1e-3), -1.0, 1.0)) + t*0.04, asin(d.y));
     float loops = fbm(sp*3.2 + vec2(0.0, t*0.01));
@@ -73,19 +73,15 @@ void main(){
     vec2 dn = d / r;  // seam-free angular coordinate
     float streak = fbm(dn*2.2 + vec2(r*1.2 - t*0.05, -r*0.7 + t*0.03));
     float rays = 0.55 + 0.9*streak*streak;
-    float reach = 4.5 - 1.6*lean*near;                // corona stretches toward the cursor
-    float v = rays * exp(-(r-1.0)*reach) * 0.9 * (1.0 + 0.35*lean*near);
-    v += 0.025*exp(-(r-1.0)*1.6);
-    v *= 1.0 + flash*1.5;
-    col = vec3(0.035, 0.086, 0.20) + vec3(0.95, 0.74, 0.22) * v * 1.05 + vec3(0.3, 0.25, 0.1) * v * v;
+    float reach = 5.5 - 1.4*lean*near;                // corona leans toward the cursor
+    float v = rays * exp(-(r-1.0)*reach) * 0.75 * (1.0 + 0.3*lean*near);
+    v *= 1.0 + flash;
+    col = vec3(0.98, 0.72, 0.24) * v + vec3(0.25, 0.22, 0.12) * v * v;
   }
 
   // sunset: dim and warm toward the 304 A red channel as the hero scrolls away
-  col = mix(col, col * vec3(1.15, 0.62, 0.38), uSet * 0.55);
-  col *= 1.0 - 0.35*uSet;
+  col *= 1.0 - 0.75*uSet*uSet;
 
-  float s = step(0.9975, hash(floor(frag/2.0))) * smoothstep(1.8, 3.0, r) * 0.6;
-  col += vec3(s) * (0.4 + 0.6*grow);
   gl_FragColor = vec4(col, 1.0);
 }
 `;
@@ -117,7 +113,7 @@ void main(){
   float rad = R*0.45;
   p += (dm > 0.001 ? tm/dm : vec2(0.0)) * rad * 0.8 * exp(-dm/rad);
 
-  vAlpha = 0.75 * smoothstep(0.0, 0.08, life) * (1.0 - life) * clamp(uIntro*1.4 - 0.4, 0.0, 1.0) * (1.0 - 0.6*uSet);
+  vAlpha = 0.55 * smoothstep(0.0, 0.08, life) * (1.0 - life) * clamp(uIntro*1.4 - 0.4, 0.0, 1.0) * (1.0 - 0.6*uSet);
   gl_Position = vec4(p / uRes * 2.0 - 1.0, 0.0, 1.0);
   gl_PointSize = (1.2 + 2.2*aSeed.z) * uDpr;
 }
@@ -128,7 +124,7 @@ varying float vAlpha;
 void main(){
   vec2 c = gl_PointCoord - 0.5;
   float f = smoothstep(0.5, 0.0, length(c));
-  gl_FragColor = vec4(vec3(1.0, 0.86, 0.48) * f * vAlpha, 1.0);
+  gl_FragColor = vec4(vec3(1.0, 0.84, 0.5) * f * vAlpha, 1.0);
 }
 `;
 
@@ -173,7 +169,7 @@ export default function Sun({ variant = "hero" }: Props) {
     gl.bindBuffer(gl.ARRAY_BUFFER, tri);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
 
-    const N = window.innerWidth < 700 ? 600 : 1300;
+    const N = window.innerWidth < 700 ? 500 : 1000;
     const seeds = new Float32Array(N * 3);
     for (let i = 0; i < seeds.length; i++) seeds[i] = Math.random();
     const seedBuf = gl.createBuffer();
@@ -207,9 +203,9 @@ export default function Sun({ variant = "hero" }: Props) {
       gl.viewport(0, 0, canvas.width, canvas.height);
       if (variant === "hero") {
         const wide = w > 820;
-        state.r = (wide ? Math.min(h * 0.38, w * 0.28) : Math.min(w * 0.55, h * 0.3)) * dpr;
-        state.cx = (wide ? w * 0.74 : w * 0.78) * dpr;
-        state.cy = (wide ? h * 0.5 : h * 0.22) * dpr;
+        state.r = (wide ? Math.min(h * 0.31, w * 0.24) : Math.min(w * 0.46, h * 0.26)) * dpr;
+        state.cx = w * 0.5 * dpr;
+        state.cy = (wide ? h * 0.17 : h * 0.2) * dpr;
       } else {
         state.r = Math.max(w * 0.42, 320) * dpr;
         state.cx = w * 0.5 * dpr;
@@ -219,7 +215,7 @@ export default function Sun({ variant = "hero" }: Props) {
 
     const draw = () => {
       // sunset lowers the sun a little as it dims
-      const cy = state.cy - state.set * state.r * 0.35;
+      const cy = state.cy - state.set * state.r * 0.7;
       gl.disable(gl.BLEND);
       gl.useProgram(sunProg);
       gl.bindBuffer(gl.ARRAY_BUFFER, tri);
@@ -279,13 +275,17 @@ export default function Sun({ variant = "hero" }: Props) {
 
     let raf = 0;
     let last = performance.now();
+    let introAt: number | undefined;
     const tick = (now: number) => {
       raf = requestAnimationFrame(tick);
       const dt = Math.min((now - last) / 1000, 0.05);
       last = now;
       if (!state.visible || document.hidden) return;
       state.time += dt;
-      if (state.introStarted && state.intro < 1) state.intro = Math.min(state.intro + dt / 2.2, 1);
+      if (state.introStarted && state.intro < 1) {
+        introAt ??= now;
+        state.intro = Math.min((now - introAt) / 2200, 1);
+      }
       const k = 1 - Math.pow(0.001, dt);
       state.mouse[0] += (state.target[0] - state.mouse[0]) * k;
       state.mouse[1] += (state.target[1] - state.mouse[1]) * k;

@@ -3,17 +3,18 @@ import { motion, useScroll, useSpring, useReducedMotion } from "motion/react";
 import ReconDemo from "./components/ReconDemo";
 import CommandPalette from "./components/CommandPalette";
 import CopyLine from "./components/CopyLine";
-import Dock from "./components/Dock";
+import GlobalNav from "./components/GlobalNav";
+import Statement from "./components/Statement";
 import TimeBars from "./components/TimeBars";
 import McpConsole from "./components/McpConsole";
 import Constellation from "./components/Constellation";
-import { HeroTitle, Reveal } from "./components/HeroTitle";
+import { FadeUp, HeroTitle, Reveal } from "./components/HeroTitle";
 import { education, experience, profile, projects, publications, skills } from "./data/profile";
 
 const Sun = lazy(() => import("./components/Sun"));
 const SITE = "https://bdsaritra.netlify.app";
 const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
-const KBD = isMac ? "⌘" : "Ctrl";
+const KBD = isMac ? "⌘" : "Ctrl ";
 
 function Timeline() {
   const ref = useRef<HTMLOListElement>(null);
@@ -42,8 +43,8 @@ function Timeline() {
             <motion.span
               className="tl-dot"
               aria-hidden
-              initial={reduce ? false : { scale: 0.6, backgroundColor: "#c9d3de" }}
-              whileInView={{ scale: 1, backgroundColor: "#e3c04b" }}
+              initial={reduce ? false : { scale: 0.6, backgroundColor: "#d2d2d7" }}
+              whileInView={{ scale: 1, backgroundColor: "#1d1d1f" }}
               viewport={{ once: true, margin: "0px 0px -45% 0px" }}
               transition={{ type: "spring", stiffness: 400, damping: 20 }}
             />
@@ -81,59 +82,45 @@ export default function App() {
     <>
       <a className="skip" href="#main">Skip to content</a>
 
-      <header className="hero">
+      <GlobalNav onPalette={() => setPalette(true)} kbd={KBD} />
+
+      <header className="hero" id="top">
         <Suspense fallback={<div className="sun sun-hero" data-fallback="true" />}>
           <Sun variant="hero" />
         </Suspense>
 
-        <Reveal delay={1.3} className="nav-wrap">
-          <nav className="nav" aria-label="Primary">
-            <a href="#top" className="nav-name">Aritra</a>
-            <div className="nav-links">
-              <a href="#demo">Work</a>
-              <a href="#projects">Projects</a>
-              <a href="#mcp">MCP</a>
-              <button className="kbd-btn" onClick={() => setPalette(true)} aria-label="Open command menu">
-                <kbd>{KBD}</kbd><kbd>K</kbd>
-              </button>
-            </div>
-          </nav>
-        </Reveal>
-
-        <div className="hero-copy" id="top">
+        <div className="hero-copy">
           <HeroTitle />
-          <Reveal delay={1.25}>
-            <p className="lede">{profile.summary}</p>
+          <Reveal delay={1.2}>
+            <p className="hero-sub">AI software engineer at Jefferies.</p>
           </Reveal>
-          <Reveal delay={1.45} className="hero-actions">
-            <a className="btn btn-sun btn-orbit" href={`mailto:${profile.email}`}><span>Email me</span></a>
-            <a className="btn btn-line" href={profile.links.resume} target="_blank" rel="noopener">Resume</a>
-            <a className="text-link" href={profile.links.linkedin} target="_blank" rel="noopener">LinkedIn</a>
-            <a className="text-link" href={profile.links.github} target="_blank" rel="noopener">GitHub</a>
+          <Reveal delay={1.4} className="hero-actions">
+            <a className="pill" href={`mailto:${profile.email}`}>Email me</a>
+            <a className="chev" href={profile.links.resume} target="_blank" rel="noopener">View resume</a>
           </Reveal>
         </div>
 
-        <Reveal delay={2.2} className="hero-caption">
-          <p>
-            The sun in extreme ultraviolet, rendered live in the colors of NASA's SDO 171 Å channel,
-            the imagery behind my first research. Move your cursor to stir the solar wind.
-          </p>
-        </Reveal>
       </header>
 
-      <Dock onPalette={() => setPalette(true)} kbd={KBD} />
+      <section className="statement-wrap" aria-label="About">
+        <Statement text={profile.summary} />
+        <div className="statement-links">
+          <a className="chev chev-dark" href={profile.links.linkedin} target="_blank" rel="noopener">LinkedIn</a>
+          <a className="chev chev-dark" href={profile.links.github} target="_blank" rel="noopener">GitHub</a>
+        </div>
+      </section>
 
       <main id="main">
-        <section id="demo" className="section">
-          <div className="section-head">
-            <h2>What my work looks like</h2>
+        <section id="demo" className="section section-gray">
+          <FadeUp className="section-head">
+            <h2>What my work looks like.</h2>
             <p>
               Every trade a bank does gets a confirmation from the other side, and someone has to
               check it against what was booked. The platform I built does that check for 1,000+ people
               across every trading middle-office team, with 98% match/break accuracy confirmed by
               middle office.
             </p>
-          </div>
+          </FadeUp>
           <TimeBars />
           <p className="demo-intro">Here's a small, simplified version of that check. Run it.</p>
           <ReconDemo />
@@ -145,12 +132,12 @@ export default function App() {
         </section>
 
         <section id="experience" className="section">
-          <h2>Experience</h2>
+          <FadeUp><h2>Experience.</h2></FadeUp>
           <Timeline />
         </section>
 
-        <section id="projects" className="section">
-          <h2>Projects</h2>
+        <section id="projects" className="section section-gray">
+          <FadeUp><h2>Projects.</h2></FadeUp>
           <ul className="projects">
             {projects.map((p) => (
               <li key={p.name} onPointerMove={spotlight}>
@@ -187,14 +174,14 @@ export default function App() {
         <section id="mcp" className="section section-dark">
           <Constellation />
           <div className="mcp-inner">
-            <div className="section-head">
-              <h2>Ask your AI agent about me</h2>
+            <FadeUp className="section-head">
+              <h2>Ask your AI agent about me.</h2>
               <p>
                 I build MCP servers for a living, so this site is one too. Connect it to Claude or any
                 MCP client and your agent can read my experience, projects and contact details
                 directly, instead of scraping a page. Try it right here first.
               </p>
-            </div>
+            </FadeUp>
             <McpConsole />
             <p className="step">To connect it in Claude Code:</p>
             <CopyLine
@@ -215,13 +202,16 @@ export default function App() {
           <Sun variant="horizon" />
         </Suspense>
         <div className="footer-inner">
-          <h2>Let's talk</h2>
+          <FadeUp><h2>Let's talk.</h2></FadeUp>
           <p>Email is the fastest way to reach me. For a longer conversation, grab a time on my calendar.</p>
           <div className="hero-actions">
-            <a className="btn btn-sun btn-orbit" href={`mailto:${profile.email}`}><span>{profile.email}</span></a>
-            <a className="btn btn-line" href={profile.links.calendly} target="_blank" rel="noopener">Schedule a call</a>
+            <a className="pill" href={`mailto:${profile.email}`}>{profile.email}</a>
+            <a className="chev chev-dark" href={profile.links.calendly} target="_blank" rel="noopener">Schedule a call</a>
           </div>
           <p className="colophon">
+            The sun on this page is rendered live in the colors of NASA SDO's 171 Å channel, the imagery
+            behind my first research.
+            <br />
             {profile.location}. Built with React, WebGL and Motion, hosted on Netlify. © {new Date().getFullYear()}
           </p>
         </div>

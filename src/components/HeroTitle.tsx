@@ -1,36 +1,31 @@
 import { motion, useReducedMotion } from "motion/react";
 import type { ReactNode } from "react";
 
-const ease = [0.16, 1, 0.3, 1] as const;
+// Apple's house easing: quick start, long gentle settle
+const ease = [0.25, 0.1, 0.25, 1] as const;
 
-/** Name reveal timed to the sun's ignition: initials settle, then each letter rises out of a mask. */
 export function HeroTitle() {
   const reduce = useReducedMotion();
-  const word = "Aritra".split("");
   return (
     <h1 aria-label="B D S Aritra">
       <motion.span
-        className="initials"
+        className="eyebrow-name"
         aria-hidden
-        initial={reduce ? false : { opacity: 0, letterSpacing: "0.7em", filter: "blur(6px)" }}
-        animate={{ opacity: 1, letterSpacing: "0.18em", filter: "blur(0px)" }}
-        transition={{ duration: 1.6, ease, delay: 0.35 }}
+        initial={reduce ? false : { opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1.2, ease, delay: 0.5 }}
       >
         B D S
       </motion.span>
-      <span className="word" aria-hidden>
-        {word.map((ch, i) => (
-          <span className="mask" key={i}>
-            <motion.span
-              initial={reduce ? false : { y: "105%" }}
-              animate={{ y: "0%" }}
-              transition={{ duration: 1.1, ease, delay: 0.7 + i * 0.06 }}
-            >
-              {ch}
-            </motion.span>
-          </span>
-        ))}
-      </span>
+      <motion.span
+        className="title-name"
+        aria-hidden
+        initial={reduce ? false : { opacity: 0, y: 24, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 1.4, ease, delay: 0.7 }}
+      >
+        Aritra
+      </motion.span>
     </h1>
   );
 }
@@ -40,9 +35,25 @@ export function Reveal({ delay, children, className }: { delay: number; children
   return (
     <motion.div
       className={className}
-      initial={reduce ? false : { opacity: 0, y: 14 }}
+      initial={reduce ? false : { opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.9, ease, delay }}
+      transition={{ duration: 1.1, ease, delay }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+/** Section-level reveal on scroll, used once per section head. */
+export function FadeUp({ children, className }: { children: ReactNode; className?: string }) {
+  const reduce = useReducedMotion();
+  return (
+    <motion.div
+      className={className}
+      initial={reduce ? false : { opacity: 0, y: 40 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.4 }}
+      transition={{ duration: 1, ease }}
     >
       {children}
     </motion.div>
