@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import Pipeline from "./Pipeline";
 
 type Field = { label: string; doc: string; booked: string };
 type Sample = { id: string; name: string; kind: string; fields: Field[] };
@@ -72,7 +73,7 @@ export default function ReconDemo() {
     setFieldsShown(0);
     let t = 0;
     toolCalls.forEach((_, i) => {
-      t += 420;
+      t += 650;
       timers.current.push(window.setTimeout(() => setToolsShown(i + 1), t));
     });
     t += 300;
@@ -116,6 +117,8 @@ export default function ReconDemo() {
           {running ? "Checking…" : phase === "done" ? "Run again" : "Check this confirmation"}
         </button>
       </div>
+
+      <Pipeline step={toolsShown} done={phase === "done"} broke={breaks.length > 0} running={running} />
 
       <div className="recon-grid">
         <div className="recon-doc" aria-label="Sample confirmation document">
