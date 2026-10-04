@@ -10,6 +10,7 @@ export default async () => {
     `Email: ${profile.email}`,
     `LinkedIn: ${profile.links.linkedin}`,
     `GitHub: ${profile.links.github}`,
+    `Google Scholar: ${profile.links.scholar}`,
     `Resume: https://bdsaritra.netlify.app${profile.links.resume}`,
     `MCP server: https://bdsaritra.netlify.app/mcp`,
     "",

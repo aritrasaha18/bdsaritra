@@ -14,7 +14,7 @@ export const profile = {
     github: "https://github.com/aritrasaha18",
     calendly: "https://calendly.com/aritrasaha18",
     resume: "/resume.pdf",
-    scholar: "", // Google Scholar profile URL; the link appears on the site once this is set
+    scholar: "https://scholar.google.com/citations?user=iU0VnUEAAAAJ",
   },
 };
 

@@ -34,6 +34,7 @@ export default function CommandPalette({ open: isOpen, onClose }: { open: boolea
       { id: "cal", label: "Schedule a call", hint: "Calendly", run: open(profile.links.calendly) },
       { id: "li", label: "LinkedIn", run: open(profile.links.linkedin) },
       { id: "gh", label: "GitHub", run: open(profile.links.github) },
+      { id: "scholar", label: "Google Scholar", hint: "Papers", run: open(profile.links.scholar) },
     ],
     [],
   );
