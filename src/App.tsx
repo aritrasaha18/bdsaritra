@@ -154,11 +154,19 @@ export default function App() {
           <ul className="papers">
             {publications.map((p) => (
               <li key={p.title}>
-                <cite>{p.title}</cite>
-                <span>{p.venue}</span>
+                <a href={p.url} target="_blank" rel="noopener">
+                  <cite>{p.title}</cite>
+                  <span className="paper-meta">{p.authors} · {p.venue}</span>
+                  <span className="chev chev-dark">Read the paper</span>
+                </a>
               </li>
             ))}
           </ul>
+          {profile.links.scholar && (
+            <p className="scholar-link">
+              <a className="chev chev-dark" href={profile.links.scholar} target="_blank" rel="noopener">All papers on Google Scholar</a>
+            </p>
+          )}
 
           <h2 className="h2-sub">Tools I reach for</h2>
           <dl className="skills">

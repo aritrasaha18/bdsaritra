@@ -14,6 +14,7 @@ export const profile = {
     github: "https://github.com/aritrasaha18",
     calendly: "https://calendly.com/aritrasaha18",
     resume: "/resume.pdf",
+    scholar: "", // Google Scholar profile URL; the link appears on the site once this is set
   },
 };
 
@@ -108,10 +109,14 @@ export const publications = [
     title:
       "Scalability Matters: Overcoming Challenges in InstructGLM with Similarity-Degree-Based Sampling",
     venue: "IJCNN 2025",
+    authors: "H. Lee, C. Yi, B.D.S. Aritra, M. Islam",
+    url: "https://arxiv.org/abs/2505.03799",
   },
   {
     title: "Predicting Coronal Hole Activity: Key to Mitigating Space Weather Impacts",
     venue: "PAAISS 2024",
+    authors: "T. Alsolame, B.D.S. Aritra, E. Niyonkuru, S. Antogiovanni, C. Chakraborttii",
+    url: "https://link.springer.com/chapter/10.1007/978-3-031-94442-0_13",
   },
 ];
 

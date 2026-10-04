@@ -201,8 +201,14 @@ a { color: inherit; }
 @media (max-width: 720px) { .projects { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { .projects li:hover { transform: none; } }
 .papers { list-style: none; padding: 0; margin: 1.5rem auto 0 !important; display: grid; gap: 1.25rem; }
-.papers cite { font-style: normal; display: block; font-weight: 600; max-width: 44rem; }
-.papers span { color: var(--muted); font-size: 14px; }
+.papers li a { display: grid; gap: .3rem; text-decoration: none; padding: 1.5rem 2rem; background: var(--white); border-radius: 28px; transition: transform .45s var(--ease), box-shadow .45s var(--ease); }
+.papers li a:hover { transform: scale(1.01); box-shadow: 0 6px 30px rgba(0,0,0,.08); }
+.papers li a:hover .chev { text-decoration: underline; }
+.papers cite { font-style: normal; display: block; font-weight: 600; font-size: 19px; max-width: 44rem; }
+.paper-meta { color: var(--muted); font-size: 14px; }
+.papers .chev { font-size: 15px; margin-top: .35rem; }
+.scholar-link { margin-top: 1.5rem !important; }
+@media (prefers-reduced-motion: reduce) { .papers li a:hover { transform: none; } }
 .skills { margin: 1.5rem auto 0 !important; display: grid; gap: .8rem; }
 .skills div { display: grid; grid-template-columns: 10rem minmax(0, 1fr); gap: 1.5rem; border-top: 1px solid var(--hair); padding-top: .8rem; }
 .skills dt { color: var(--muted); }

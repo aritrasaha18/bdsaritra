@@ -27,7 +27,7 @@ export default async () => {
     ...projects.map((p) => `- [${p.name}](${p.url}): ${p.blurb} (${p.stack})`),
     "",
     "## Papers",
-    ...publications.map((p) => `- ${p.title}, ${p.venue}`),
+    ...publications.map((p) => `- [${p.title}](${p.url}), ${p.venue}. ${p.authors}`),
     "",
     "## Skills",
     ...Object.entries(skills).map(([k, v]) => `- ${k}: ${v.join(", ")}`),
