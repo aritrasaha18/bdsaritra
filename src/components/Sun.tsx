@@ -18,15 +18,39 @@ uniform vec2 uMouse;
 `;
 
 const sunFrag = COMMON + /* glsl */ `
-float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453); }
-float noise(vec2 p){
-  vec2 i = floor(p), f = fract(p);
-  vec2 u = f*f*(3.0-2.0*f);
-  return mix(mix(hash(i), hash(i+vec2(1,0)), u.x), mix(hash(i+vec2(0,1)), hash(i+vec2(1,1)), u.x), u.y);
+// 2D simplex noise (Ashima Arts / Ian McEwan, MIT). Smooth gradients, no square grid artifacts.
+vec3 permute(vec3 x){ return mod(((x*34.0)+1.0)*x, 289.0); }
+float snoise(vec2 v){
+  const vec4 C = vec4(0.211324865405187, 0.366025403784439, -0.577350269189626, 0.024390243902439);
+  vec2 i  = floor(v + dot(v, C.yy));
+  vec2 x0 = v - i + dot(i, C.xx);
+  vec2 i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+  vec4 x12 = x0.xyxy + C.xxzz;
+  x12.xy -= i1;
+  i = mod(i, 289.0);
+  vec3 p = permute(permute(i.y + vec3(0.0, i1.y, 1.0)) + i.x + vec3(0.0, i1.x, 1.0));
+  vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy), dot(x12.zw,x12.zw)), 0.0);
+  m = m*m; m = m*m;
+  vec3 x = 2.0 * fract(p * C.www) - 1.0;
+  vec3 h = abs(x) - 0.5;
+  vec3 ox = floor(x + 0.5);
+  vec3 a0 = x - ox;
+  m *= 1.79284291400159 - 0.85373472095314 * (a0*a0 + h*h);
+  vec3 g;
+  g.x  = a0.x  * x0.x  + h.x  * x0.y;
+  g.yz = a0.yz * x12.xz + h.yz * x12.yw;
+  return 130.0 * dot(m, g);
 }
-float fbm(vec2 p){
+// fractal sum, each octave rotated so no direction lines up
+float fbm(vec2 p, int oct){
   float v = 0.0, a = 0.5;
-  for (int i = 0; i < 5; i++){ v += a*noise(p); p *= 2.03; a *= 0.5; }
+  mat2 r = mat2(0.8, -0.6, 0.6, 0.8);
+  for (int i = 0; i < 7; i++){
+    if (i >= oct) break;
+    v += a * (0.5 + 0.5*snoise(p));
+    p = r * p * 2.02 + 17.3;
+    a *= 0.5;
+  }
   return v;
 }
 vec3 aia171(float t){
@@ -41,47 +65,60 @@ vec3 aia171(float t){
 }
 float easeOut(float x){ return 1.0 - pow(1.0 - clamp(x,0.0,1.0), 4.0); }
 
+vec3 surface(vec2 d, float r, float t, float lean, float near, float flash){
+  float rr = min(r, 0.9995);
+  float z = sqrt(1.0 - rr*rr);
+  // stereographic coordinates: features compress toward the limb like a sphere, with no pole pinch
+  vec2 sp = d / (1.0 + z) * 2.0 + vec2(t*0.03, 0.0);
+  vec2 q = vec2(fbm(sp*1.6 + vec2(0.0, t*0.02), 4), fbm(sp*1.6 + vec2(5.2, 1.3 - t*0.015), 4));
+  float loops  = fbm(sp*2.6 + q*1.1, 6);
+  float fine   = fbm(sp*12.0 + q*1.5 - vec2(t*0.02, 0.0), 5);
+  float active = smoothstep(0.55, 0.80, fbm(sp*1.1 + 7.3 + q*0.5, 4));
+  float v = 0.16 + 0.50*loops + 0.10*fine + 0.65*active*loops*loops;
+  v *= 0.5 + 0.5*pow(z, 0.45);
+  v += 0.22*smoothstep(0.88, 1.0, rr);
+  v += 0.10*lean*near*smoothstep(0.6, 1.0, rr);
+  return aia171(v * (1.0 + flash));
+}
+
+vec3 corona(vec2 d, float r, float t, float lean, float near, float flash){
+  float rr = max(r, 1.0);
+  vec2 dn = d / max(r, 1e-4);
+  float streak = fbm(dn*2.2 + vec2(rr*1.2 - t*0.05, -rr*0.7 + t*0.03), 5);
+  float rays = 0.55 + 0.9*streak*streak;
+  float reach = 5.5 - 1.4*lean*near;
+  float v = rays * exp(-(rr-1.0)*reach) * 0.75 * (1.0 + 0.3*lean*near);
+  v *= 1.0 + flash;
+  return vec3(0.98, 0.72, 0.24) * v + vec3(0.25, 0.22, 0.12) * v * v;
+}
+
 void main(){
   vec2 frag = gl_FragCoord.xy;
   float grow = easeOut(uIntro);
   float R = uRadius * (0.12 + 0.88*grow);
   vec2 d = (frag - uCenter) / R;
   float r = length(d);
-    float t = uTime;
+  float t = uTime;
 
-  // where the cursor is, relative to the sun
   vec2 m = uMouse - uCenter;
   float mLen = length(m);
   vec2 mDir = mLen > 1.0 ? m / mLen : vec2(0.0);
   float lean = max(dot(normalize(d + 1e-4), mDir), 0.0);
   float near = exp(-max(mLen / R - 1.0, 0.0) * 0.8);
-
-  vec3 col;
   float flash = (1.0 - grow) * 1.1;
-  if (r < 1.0) {
-    vec2 sp = vec2(asin(clamp(d.x / max(sqrt(1.0 - d.y*d.y), 1e-3), -1.0, 1.0)) + t*0.04, asin(d.y));
-    float loops = fbm(sp*3.2 + vec2(0.0, t*0.01));
-    float fine  = fbm(sp*14.0 - vec2(t*0.02, 0.0));
-    float active = smoothstep(0.55, 0.85, fbm(sp*1.6 + 7.3));
-    float z = sqrt(1.0 - r*r);
-    float v = 0.30 + 0.35*loops + 0.12*fine + 0.45*active*loops;
-    v *= 0.55 + 0.45*pow(z, 0.5);
-    v += 0.25*smoothstep(0.85, 1.0, r);
-    v += 0.10*lean*near*smoothstep(0.6, 1.0, r);
-    col = aia171(v * (1.0 + flash));
-  } else {
-    vec2 dn = d / r;  // seam-free angular coordinate
-    float streak = fbm(dn*2.2 + vec2(r*1.2 - t*0.05, -r*0.7 + t*0.03));
-    float rays = 0.55 + 0.9*streak*streak;
-    float reach = 5.5 - 1.4*lean*near;                // corona leans toward the cursor
-    float v = rays * exp(-(r-1.0)*reach) * 0.75 * (1.0 + 0.3*lean*near);
-    v *= 1.0 + flash;
-    col = vec3(0.98, 0.72, 0.24) * v + vec3(0.25, 0.22, 0.12) * v * v;
-  }
 
-  // sunset: dim and warm toward the 304 A red channel as the hero scrolls away
+  // anti-aliased limb: blend surface and corona across ~1.5 device pixels
+  float px = 1.5 / R;
+  float edge = smoothstep(1.0 - px, 1.0 + px, r);
+  vec3 col;
+  if (edge <= 0.0)      col = surface(d, r, t, lean, near, flash);
+  else if (edge >= 1.0) col = corona(d, r, t, lean, near, flash);
+  else col = mix(surface(d, r, t, lean, near, flash), corona(d, r, t, lean, near, flash), edge);
+
   col *= 1.0 - 0.75*uSet*uSet;
-
+  // a whisper of dither removes banding in the dark corona falloff
+  float n = fract(sin(dot(frag, vec2(12.9898, 78.233))) * 43758.5453);
+  col += (n - 0.5) / 255.0;
   gl_FragColor = vec4(col, 1.0);
 }
 `;
@@ -184,7 +221,11 @@ export default function Sun({ variant = "hero" }: Props) {
     const aPos = gl.getAttribLocation(sunProg, "aPos");
     const aSeed = gl.getAttribLocation(windProg, "aSeed");
 
-    const dpr = Math.min(window.devicePixelRatio, 1.5);
+    // render at the screen's real density (capped at 2x), and step down if frames run slow
+    const maxDpr = Math.min(window.devicePixelRatio || 1, 2);
+    let dpr = maxDpr;
+    const budget = 2_600_000 * 2; // pixels; keeps very large 2x screens in check
+    const fitDpr = () => Math.min(dpr, Math.sqrt(budget / Math.max(el.clientWidth * el.clientHeight, 1)));
     const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const state = {
       w: 1, h: 1, cx: 0, cy: 0, r: 100,
@@ -195,20 +236,22 @@ export default function Sun({ variant = "hero" }: Props) {
       visible: true, introStarted: variant === "hero",
     };
 
+    let scale = maxDpr;
     const layout = () => {
       const w = el.clientWidth, h = el.clientHeight;
+      scale = fitDpr();
       state.w = w; state.h = h;
-      canvas.width = Math.round(w * dpr);
-      canvas.height = Math.round(h * dpr);
+      canvas.width = Math.round(w * scale);
+      canvas.height = Math.round(h * scale);
       gl.viewport(0, 0, canvas.width, canvas.height);
       if (variant === "hero") {
         const wide = w > 820;
-        state.r = (wide ? Math.min(h * 0.31, w * 0.24) : Math.min(w * 0.46, h * 0.26)) * dpr;
-        state.cx = w * 0.5 * dpr;
-        state.cy = (wide ? h * 0.17 : h * 0.2) * dpr;
+        state.r = (wide ? Math.min(h * 0.31, w * 0.24) : Math.min(w * 0.46, h * 0.26)) * scale;
+        state.cx = w * 0.5 * scale;
+        state.cy = (wide ? h * 0.17 : h * 0.2) * scale;
       } else {
-        state.r = Math.max(w * 0.42, 320) * dpr;
-        state.cx = w * 0.5 * dpr;
+        state.r = Math.max(w * 0.42, 320) * scale;
+        state.cx = w * 0.5 * scale;
         state.cy = -state.r * 0.62;
       }
     };
@@ -238,7 +281,7 @@ export default function Sun({ variant = "hero" }: Props) {
       gl.blendFunc(gl.ONE, gl.ONE);
       gl.useProgram(windProg);
       set(uWind);
-      gl.uniform1f(uWind.uDpr, dpr);
+      gl.uniform1f(uWind.uDpr, scale);
       gl.bindBuffer(gl.ARRAY_BUFFER, seedBuf);
       gl.enableVertexAttribArray(aSeed);
       gl.vertexAttribPointer(aSeed, 3, gl.FLOAT, false, 0, 0);
@@ -258,7 +301,7 @@ export default function Sun({ variant = "hero" }: Props) {
 
     const onMove = (e: PointerEvent) => {
       const rect = el.getBoundingClientRect();
-      state.target = [(e.clientX - rect.left) * dpr, (rect.bottom - e.clientY) * dpr];
+      state.target = [(e.clientX - rect.left) * scale, (rect.bottom - e.clientY) * scale];
       if (state.mouse[0] < -9000) state.mouse = [...state.target];
     };
     const onLeave = () => { state.target = [-9999, -9999]; state.mouse = [-9999, -9999]; };
@@ -276,10 +319,16 @@ export default function Sun({ variant = "hero" }: Props) {
     let raf = 0;
     let last = performance.now();
     let introAt: number | undefined;
+    let frames = 0, slow = 0;
     const tick = (now: number) => {
       raf = requestAnimationFrame(tick);
       const dt = Math.min((now - last) / 1000, 0.05);
       last = now;
+      if (state.visible && !document.hidden && frames < 90) {
+        frames++;
+        if (frames > 30) slow += dt > 0.024 ? 1 : 0;
+        if (frames === 90 && slow > 30 && dpr > 1) { dpr = Math.max(1, dpr * 0.7); layout(); }
+      }
       if (!state.visible || document.hidden) return;
       state.time += dt;
       if (state.introStarted && state.intro < 1) {
