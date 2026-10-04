@@ -217,8 +217,9 @@ export default function App() {
             <a className="chev chev-dark" href={profile.links.calendly} target="_blank" rel="noopener">Schedule a call</a>
           </div>
           <p className="colophon">
-            The sun on this page is rendered live in the colors of NASA SDO's 171 Å channel, the imagery
-            behind my first research.
+            The sun on this page is the real one: today's image from NASA's Solar Dynamics Observatory in the
+            171 Å channel, the same imagery behind my first research, refreshed every 15 minutes. Courtesy of
+            NASA/SDO and the AIA, EVE, and HMI science teams.
             <br />
             {profile.location}. Built with React, WebGL and Motion, hosted on Netlify. © {new Date().getFullYear()}
           </p>

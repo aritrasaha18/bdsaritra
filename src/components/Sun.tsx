@@ -16,8 +16,12 @@ uniform float uIntro;
 uniform float uSet;
 uniform vec2 uMouse;
 `;
+const PHOTO_UNIFORMS = `
+uniform sampler2D uTex;
+uniform float uPhoto;
+`;
 
-const sunFrag = COMMON + /* glsl */ `
+const sunFrag = COMMON + PHOTO_UNIFORMS + /* glsl */ `
 // 2D simplex noise (Ashima Arts / Ian McEwan, MIT). Smooth gradients, no square grid artifacts.
 vec3 permute(vec3 x){ return mod(((x*34.0)+1.0)*x, 289.0); }
 float snoise(vec2 v){
@@ -92,6 +96,15 @@ vec3 corona(vec2 d, float r, float t, float lean, float near, float flash){
   return vec3(0.98, 0.72, 0.24) * v + vec3(0.25, 0.22, 0.12) * v * v;
 }
 
+// Real SDO/AIA 171 image. In SDO's full-disk JPEGs the solar radius is ~0.39 of the frame width.
+// We fade out before ~1.3 radii so the corner timestamps never show.
+vec3 photo(vec2 d, float r){
+  vec2 uv = 0.5 + d * 0.39;
+  vec3 c = texture2D(uTex, uv).rgb;
+  float mask = smoothstep(1.30, 1.08, r);
+  return c * mask;
+}
+
 void main(){
   vec2 frag = gl_FragCoord.xy;
   float grow = easeOut(uIntro);
@@ -111,9 +124,21 @@ void main(){
   float px = 1.5 / R;
   float edge = smoothstep(1.0 - px, 1.0 + px, r);
   vec3 col;
-  if (edge <= 0.0)      col = surface(d, r, t, lean, near, flash);
-  else if (edge >= 1.0) col = corona(d, r, t, lean, near, flash);
-  else col = mix(surface(d, r, t, lean, near, flash), corona(d, r, t, lean, near, flash), edge);
+  if (uPhoto >= 1.0) {
+    // photo mode: the real sun, with a soft live corona layered outside the limb
+    col = photo(d, r);
+    if (r > 0.98) col += corona(d, r, t, lean, near, 0.0) * 0.35 * smoothstep(0.98, 1.06, r);
+    col *= 1.0 + flash;
+  } else {
+    if (edge <= 0.0)      col = surface(d, r, t, lean, near, flash);
+    else if (edge >= 1.0) col = corona(d, r, t, lean, near, flash);
+    else col = mix(surface(d, r, t, lean, near, flash), corona(d, r, t, lean, near, flash), edge);
+    if (uPhoto > 0.0) {
+      vec3 ph = photo(d, r);
+      if (r > 0.98) ph += corona(d, r, t, lean, near, 0.0) * 0.35 * smoothstep(0.98, 1.06, r);
+      col = mix(col, ph * (1.0 + flash), uPhoto);
+    }
+  }
 
   col *= 1.0 - 0.75*uSet*uSet;
   // a whisper of dither removes banding in the dark corona falloff
@@ -217,6 +242,29 @@ export default function Sun({ variant = "hero" }: Props) {
     const loc = (p: WebGLProgram) =>
       Object.fromEntries(names.map((n) => [n, gl.getUniformLocation(p, n)])) as Record<(typeof names)[number], WebGLUniformLocation | null>;
     const uSun = loc(sunProg);
+    const uTex = gl.getUniformLocation(sunProg, "uTex");
+    const uPhoto = gl.getUniformLocation(sunProg, "uPhoto");
+    let photoMix = 0, photoReady = false;
+    const tex = gl.createTexture();
+    {
+      const img = new Image();
+      img.decoding = "async";
+      img.src = `/sun.jpg?size=${window.innerWidth < 700 ? 1024 : 2048}`;
+      img.onload = () => {
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, img);
+        const pot = (img.width & (img.width - 1)) === 0 && (img.height & (img.height - 1)) === 0;
+        if (pot) gl.generateMipmap(gl.TEXTURE_2D);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, pot ? gl.LINEAR_MIPMAP_LINEAR : gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        photoReady = true;
+        if (still) { photoMix = 1; draw(); }
+      };
+      // on error we simply keep the procedural sun
+    }
     const uWind = { ...loc(windProg), uDpr: gl.getUniformLocation(windProg, "uDpr") };
     const aPos = gl.getAttribLocation(sunProg, "aPos");
     const aSeed = gl.getAttribLocation(windProg, "aSeed");
@@ -274,6 +322,10 @@ export default function Sun({ variant = "hero" }: Props) {
         gl.uniform2f(u.uMouse, state.mouse[0], state.mouse[1]);
       };
       set(uSun);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.uniform1i(uTex, 0);
+      gl.uniform1f(uPhoto, photoMix);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
       gl.disableVertexAttribArray(aPos);
 
@@ -331,6 +383,7 @@ export default function Sun({ variant = "hero" }: Props) {
       }
       if (!state.visible || document.hidden) return;
       state.time += dt;
+      if (photoReady && photoMix < 1) photoMix = Math.min(photoMix + dt / 0.8, 1);
       if (state.introStarted && state.intro < 1) {
         introAt ??= now;
         state.intro = Math.min((now - introAt) / 2200, 1);
@@ -353,6 +406,7 @@ export default function Sun({ variant = "hero" }: Props) {
       document.removeEventListener("pointerleave", onLeave);
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("scroll", onStillScroll);
+      gl.deleteTexture(tex);
       gl.deleteBuffer(tri);
       gl.deleteBuffer(seedBuf);
       gl.deleteProgram(sunProg);
